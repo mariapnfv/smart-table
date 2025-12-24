@@ -37,7 +37,7 @@ const rules = {
     // Пропускать пустые значения в целевом объекте
     // Подробнее: это полезно, когда вы не хотите сравнивать поля,
     // которые не заполнены в форме поиска или фильтре
-    skipEmptyTargetValues: () => (key, sourceValue, targetValue) => {
+ skipEmptyTargetValues: () => (key, sourceValue, targetValue) => {
         if (isEmpty(targetValue)) {
             return { skip: true };
         }
@@ -290,7 +290,7 @@ function compare(source, target, rulesList) {
  * Это позволяет повторно использовать одни и те же настройки сравнения без их
  * повторного определения.
  */
-function createComparison(ruleNames, customRules = []) {
+ function createComparison(ruleNames, customRules = []) {
     return (source, target) => {
         const rulesList = [
             ...ruleNames.map(ruleName => {

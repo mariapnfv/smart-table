@@ -1,5 +1,10 @@
 import './fonts/ys-display/fonts.css'
 import './style.css'
+import { initSearching } from './components/searching.js';
+
+import { initPagination } from './components/pagination.js';
+import { initSorting } from './components/sorting.js';
+import { initFiltering  } from './components/filtering.js';
 
 import {data as sourceData} from "./data/dataset_1.js";
 
@@ -19,9 +24,12 @@ const {data, ...indexes} = initData(sourceData);
  */
 function collectState() {
     const state = processFormData(new FormData(sampleTable.container));
-
+const rowsPerPage = parseInt(state.rowsPerPage);    // приведём количество страниц к числу
+const page = parseInt(state.page ?? 1);                // номер страницы по умолчанию 1 и тоже число
     return {
-        ...state
+        ...state,   
+        rowsPerPage,
+        page
     };
 }
 
@@ -33,7 +41,10 @@ function render(action) {
     let state = collectState(); // состояние полей из таблицы
     let result = [...data]; // копируем для последующего изменения
     // @todo: использование
-
+    result = applySearch(data, state, action);
+    result = applyFiltering(data, state, action);
+    result = applySorting(result, state, action);
+    result = applyPagination(result, state, action); 
 
     sampleTable.render(result)
 }
@@ -41,12 +52,37 @@ function render(action) {
 const sampleTable = initTable({
     tableTemplate: 'table',
     rowTemplate: 'row',
-    before: [],
-    after: []
+    before: ['search','header', 'filter'], 
+    after: ['pagination']
 }, render);
 
 // @todo: инициализация
+const applyPagination = initPagination(
+    sampleTable.pagination.elements,             // передаём сюда элементы пагинации, найденные в шаблоне
+    (el, page, isCurrent) => {                    // и колбэк, чтобы заполнять кнопки страниц данными
+        const input = el.querySelector('input');
+        const label = el.querySelector('span');
+        input.value = page;
+        input.checked = isCurrent;
+        label.textContent = page;
+        return el;
+    }
+)
 
+const applySorting = initSorting([        
+    sampleTable.header.elements.sortByDate,  // Кнопка сортировки по дате
+    sampleTable.header.elements.sortByTotal  // Кнопка сортировки по сумме
+]);
+
+const applyFiltering = initFiltering(sampleTable.filter.elements, {    // передаём элементы фильтра
+    searchBySeller: indexes.sellers                                    // для элемента с именем searchBySeller устанавливаем массив продавцов
+});
+
+const applySearch  = initSearching(
+    sampleTable.search.elements, // элементы управления из шаблона search
+    'search'                     // имя поля в объекте state.filters (или state)
+);
+ 
 
 const appRoot = document.querySelector('#app');
 appRoot.appendChild(sampleTable.container);
