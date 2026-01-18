@@ -1,46 +1,52 @@
-import {createComparison, defaultRules} from "../lib/compare.js";
-
-// @todo: #4.3 — настроить компаратор
-const compare = createComparison(defaultRules);
-
-export function initFiltering(elements, indexes) {
-    // @todo: #4.1 — заполнить выпадающие списки опциями
-    Object.keys(indexes) // Получаем ключи (например, 'category', 'status')
-  .forEach((elementName) => { // Перебираем соответствующие select-элементы
-    elements[elementName].append(
-      ...Object.values(indexes[elementName]) // Получаем массив уникальных значений для этого поля
-        .map(name => {
-          // Создаем элемент <option>
-          const option = document.createElement('option');
-          // Устанавливаем значение и текст (они совпадают)
-          option.value = name;
-          option.textContent = name;
-          
-          return option; // Возвращаем готовую опцию в массив для append
+export function initFiltering(elements) {
+    const updateIndexes = (elements, indexes) => {
+        Object.keys(indexes).forEach((elementName) => {
+            elements[elementName].append(...Object.values(indexes[elementName]).map(name => {
+                const el = document.createElement('option');
+                el.textContent = name;
+                el.value = name;
+                return el;
+            }))
         })
-    );
-  });
+    }
 
-    return (data, state, action) => {
-        // @todo: #4.2 — обработать очистку поля
-if (action && action.name === 'clear') {
-    // 1. Находим input рядом с кнопкой (ищем внутри общего родителя)
-    const input = action.parentElement.querySelector('input');
-    
-    if (input) {
-        // 2. Сбрасываем визуальное значение в поле ввода
-        input.value = '';
-        
-        // 3. Получаем имя поля из атрибута data-field кнопки
-        const fieldName = action.dataset.field;
-        
-        // 4. Сбрасываем значение этого поля в объекте состояния (state)
-        // В зависимости от структуры вашего проекта это может быть state[fieldName] или state.filters[fieldName]
-        state.filters[fieldName] = ''; 
+    const applyFiltering = (query, state, action) => {
+        // код с обработкой очистки поля
+        if (action && action.name === 'clear') {
+            // 1. Находим input рядом с кнопкой (ищем внутри общего родителя)
+            const fieldName = action.dataset.field;
+            // const parent = action.parentElement;
+            const input = action.parentElement.querySelector('input, select');
+
+            if (input) {
+                // 2. Сбрасываем визуальное значение в поле ввода
+                input.value = '';
+            }
+
+            // 3. Получаем имя поля из атрибута data-field кнопки
+
+            if (fieldName in state) {
+                // 4. Сбрасываем значение этого поля в объекте состояния (state)
+                state[fieldName] = '';
+            }
+        }
+
+        // @todo: #4.5 — отфильтровать данные, используя компаратор
+        const filter = {};
+        Object.keys(elements).forEach(key => {
+            if (elements[key]) {
+                if (['INPUT', 'SELECT'].includes(elements[key].tagName) && elements[key].value) { // ищем поля ввода в фильтре с непустыми данными
+                    filter[`filter[${elements[key].name}]`] = elements[key].value; // чтобы сформировать в query вложенный объект фильтра
+                }
+            }
+        })
+
+        return Object.keys(filter).length ? Object.assign({}, query, filter) : query; // если в фильтре что-то добавилось, применим к запросу
+    }
+
+    return {
+        updateIndexes,
+        applyFiltering
     }
 }
-        // @todo: #4.5 — отфильтровать данные используя компаратор
-        return data.filter(row => compare(row, state));
-     //   return data;
-    }
-}
+
